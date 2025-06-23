@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "QuickText",
+  "version": "1.0",
+  "description": "Define custom text shortcuts and hotkeys that expand into frequently used phrases, links, or templates.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "options.html",
+    "default_icon": {
+      "16": "images/icon16.svg",
+      "48": "images/icon48.svg",
+      "128": "images/icon128.svg"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.svg",
+    "48": "images/icon48.svg",
+    "128": "images/icon128.svg"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E"
+      },
+      "description": "Open QuickText options"
+    }
+  }
+}
