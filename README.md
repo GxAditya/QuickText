@@ -71,7 +71,7 @@ To run the extension locally for development, follow these steps.
 5.  Navigate into the `QuickText/Mozilla` folder and select the `manifest.json` file.
 6.  The QuickText icon will appear in your browser's toolbar.
 
-or You can download it from the Mozilla Add-on marketplace : https://addons.mozilla.org/en-US/firefox/addon/gxquicktext/?utm_source=addons.mozilla.org&utm_medium=referral&utm_content=search
+or You can download it from the Mozilla Add-on marketplace : https://addons.mozilla.org/en-US/firefox/addon/gxquicktext/
 
 ---
 
