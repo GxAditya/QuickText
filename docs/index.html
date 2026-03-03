@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>QuickText — Text Expansion for Browsers</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Lightning-fast text expansion for Chrome and Firefox. Define custom shortcuts that expand into frequently used phrases.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #fafafa;
+      --text: #111111;
+      --text-secondary: #666666;
+      --text-muted: #999999;
+      --accent: #111111;
+      --border: rgba(0,0,0,0.08);
+      --ease: cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Geist', sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Header */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 24px 48px;
+      background: rgba(250,250,250,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo img {
+      width: 28px;
+      height: 28px;
+    }
+
+    .logo-text {
+      font-family: 'Instrument Serif', serif;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s var(--ease);
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #ffffff !important;
+      background: var(--text);
+      border-radius: 100px;
+      text-decoration: none;
+      transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    }
+
+    .nav-cta svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .nav-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 48px 80px;
+    }
+
+    .hero-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .hero-text {
+      max-width: 560px;
+    }
+
+    .hero-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease) 0.2s forwards;
+    }
+
+    .hero h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(48px, 10vw, 96px);
+      font-weight: 400;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease) 0.3s forwards;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    .hero-description {
+      max-width: 480px;
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease) 0.4s forwards;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease) 0.5s forwards;
+    }
+
+    .hero-video {
+      position: relative;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease) 0.6s forwards;
+    }
+
+    .hero-video video {
+      width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.12);
+      border: 1px solid var(--border);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 28px;
+      font-family: 'Geist', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      border-radius: 100px;
+      transition: all 0.3s var(--ease);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: var(--text);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #fff;
+      border-color: var(--text);
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Demo Section */
+    .demo-section {
+      padding: 120px 48px;
+    }
+
+    .demo-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 64px;
+    }
+
+    .demo-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 48px;
+      box-shadow: 0 4px 48px rgba(0,0,0,0.04);
+    }
+
+    .demo-input-wrapper {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .demo-input {
+      width: 100%;
+      padding: 20px 24px;
+      font-family: 'Geist Mono', 'SF Mono', monospace;
+      font-size: 16px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      transition: all 0.3s var(--ease);
+    }
+
+    .demo-input:focus {
+      border-color: var(--text);
+      box-shadow: 0 0 0 4px rgba(0,0,0,0.05);
+    }
+
+    .demo-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .demo-output {
+      padding: 24px;
+      background: var(--bg);
+      border-radius: 10px;
+      min-height: 120px;
+    }
+
+    .demo-output-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .demo-output-text {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+    }
+
+    .demo-output-text.active {
+      color: var(--text);
+    }
+
+    .demo-hints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      font-family: 'Geist Mono', 'SF Mono', monospace;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.3s var(--ease);
+    }
+
+    .hint:hover {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+
+    /* Features */
+    .features {
+      padding: 120px 48px;
+      background: var(--bg);
+    }
+
+    .features-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .features-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      margin-bottom: 16px;
+      align-items: start;
+    }
+
+    .features-header-right {
+      padding-top: 34px;
+    }
+
+    .features-header-right p {
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    .features-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 48px 64px;
+    }
+
+    .feature {
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    .feature-number {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .feature h3 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 24px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .feature p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    /* CTA */
+    .cta {
+      padding: 120px 48px;
+    }
+
+    .cta-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+
+    .cta p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+    }
+
+    .cta-actions {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* Footer */
+    footer {
+      padding: 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .footer-left span {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+    }
+
+    .footer-links a {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s var(--ease);
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      header {
+        padding: 20px 24px;
+      }
+
+      .hero {
+        padding: 100px 24px 60px;
+      }
+
+      .hero-content {
+        grid-template-columns: 1fr;
+        gap: 48px;
+      }
+
+      .hero-video {
+        order: -1;
+      }
+
+      .demo-section,
+      .features,
+      .cta {
+        padding: 80px 24px;
+      }
+
+      .features-header {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .features-list {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .demo-card {
+        padding: 32px 24px;
+      }
+
+      footer {
+        padding: 32px 24px;
+      }
+
+      .footer-container {
+        flex-direction: column;
+        gap: 24px;
+        text-align: center;
+      }
+
+      .footer-left {
+        flex-direction: column;
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .nav-links a:not(.nav-cta) {
+        display: none;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .cta-actions {
+        flex-direction: column;
+      }
+
+      .cta-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="#" class="logo">
+        <img src="../Chromium/images/icon48.png" alt="QuickText">
+        <span class="logo-text">QuickText</span>
+      </a>
+      <div class="nav-links">
+        <a href="#demo">Demo</a>
+        <a href="#features">Features</a>
+        <a href="https://github.com/GxAditya/QuickText" class="nav-cta">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+          Install
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-text">
+        <span class="hero-label">Text Expansion for Browsers</span>
+        <h1>Type less.<br><em>Do more.</em></h1>
+        <p class="hero-description">
+          Define custom shortcuts that expand into frequently used phrases, links, and templates. Save hours every week with instant text expansion.
+        </p>
+        <div class="hero-actions">
+          <a href="https://chrome.google.com/webstore/detail/quicktext/your-extension-id" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="88" x2="215.29" y2="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="162.64" y1="148" x2="118.99" y2="223.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="93.36" y1="148" x2="49.71" y2="72.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+            Chrome
+          </a>
+          <a href="https://addons.mozilla.org/en-US/firefox/addon/gxquicktext/" class="btn btn-primary" style="background: #FF7139;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.419 81.967"><defs><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="80.797" cy="-8515.121" cx="-7907.187" id="b"><stop stop-color="#ffbd4f" offset=".129"/><stop stop-color="#ffac31" offset=".186"/><stop stop-color="#ff9d17" offset=".247"/><stop stop-color="#ff980e" offset=".283"/><stop stop-color="#ff563b" offset=".403"/><stop stop-color="#ff3750" offset=".467"/><stop stop-color="#f5156c" offset=".71"/><stop stop-color="#eb0878" offset=".782"/><stop stop-color="#e50080" offset=".86"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="80.797" cy="-8482.089" cx="-7936.711" id="c"><stop stop-color="#960e18" offset=".3"/><stop stop-opacity=".74" stop-color="#b11927" offset=".351"/><stop stop-opacity=".343" stop-color="#db293d" offset=".435"/><stop stop-opacity=".094" stop-color="#f5334b" offset=".497"/><stop stop-opacity="0" stop-color="#ff3750" offset=".53"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="58.534" cy="-8533.457" cx="-7926.97" id="d"><stop stop-color="#fff44f" offset=".132"/><stop stop-color="#ffdc3e" offset=".252"/><stop stop-color="#ff9d12" offset=".506"/><stop stop-color="#ff980e" offset=".526"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="38.471" cy="-8460.984" cx="-7945.648" id="e"><stop stop-color="#3a8ee6" offset=".353"/><stop stop-color="#5c79f0" offset=".472"/><stop stop-color="#9059ff" offset=".669"/><stop stop-color="#c139e6" offset="1"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="matrix(.972 -.235 .275 1.138 10095.002 7833.794)" r="20.397" cy="-8491.546" cx="-7935.62" id="f"><stop stop-opacity="0" stop-color="#9059ff" offset=".206"/><stop stop-opacity=".064" stop-color="#8c4ff3" offset=".278"/><stop stop-opacity=".45" stop-color="#7716a8" offset=".747"/><stop stop-opacity=".6" stop-color="#6e008b" offset=".975"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="27.676" cy="-8518.427" cx="-7937.731" id="g"><stop stop-color="#ffe226" offset="0"/><stop stop-color="#ffdb27" offset=".121"/><stop stop-color="#ffc82a" offset=".295"/><stop stop-color="#ffa930" offset=".502"/><stop stop-color="#ff7e37" offset=".732"/><stop stop-color="#ff7139" offset=".792"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="118.081" cy="-8535.981" cx="-7915.977" id="h"><stop stop-color="#fff44f" offset=".113"/><stop stop-color="#ff980e" offset=".456"/><stop stop-color="#ff5634" offset=".622"/><stop stop-color="#ff3647" offset=".716"/><stop stop-color="#e31587" offset=".904"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="matrix(.105 .995 -.653 .069 -4680.304 8470.187)" r="86.499" cy="-8522.859" cx="-7927.165" id="i"><stop stop-color="#fff44f" offset="0"/><stop stop-color="#ffe847" offset=".06"/><stop stop-color="#ffc830" offset=".168"/><stop stop-color="#ff980e" offset=".304"/><stop stop-color="#ff8b16" offset=".356"/><stop stop-color="#ff672a" offset=".455"/><stop stop-color="#ff3647" offset=".57"/><stop stop-color="#e31587" offset=".737"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="73.72" cy="-8508.176" cx="-7938.383" id="j"><stop stop-color="#fff44f" offset=".137"/><stop stop-color="#ff980e" offset=".48"/><stop stop-color="#ff5634" offset=".592"/><stop stop-color="#ff3647" offset=".655"/><stop stop-color="#e31587" offset=".904"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="80.686" cy="-8503.861" cx="-7918.923" id="k"><stop stop-color="#fff44f" offset=".094"/><stop stop-color="#ffe141" offset=".231"/><stop stop-color="#ffaf1e" offset=".509"/><stop stop-color="#ff980e" offset=".626"/></radialGradient><linearGradient gradientTransform="translate(3.7 -.004)" gradientUnits="userSpaceOnUse" y2="74.468" x2="6.447" y1="12.393" x1="70.786" id="a"><stop stop-color="#fff44f" offset=".048"/><stop stop-color="#ffe847" offset=".111"/><stop stop-color="#ffc830" offset=".225"/><stop stop-color="#ff980e" offset=".368"/><stop stop-color="#ff8b16" offset=".401"/><stop stop-color="#ff672a" offset=".462"/><stop stop-color="#ff3647" offset=".534"/><stop stop-color="#e31587" offset=".705"/></linearGradient><linearGradient gradientTransform="translate(3.7 -.004)" gradientUnits="userSpaceOnUse" y2="66.806" x2="15.267" y1="12.061" x1="70.013" id="l"><stop stop-opacity=".8" stop-color="#fff44f" offset=".167"/><stop stop-opacity=".634" stop-color="#fff44f" offset=".266"/><stop stop-opacity=".217" stop-color="#fff44f" offset=".489"/><stop stop-opacity="0" stop-color="#fff44f" offset=".6"/></linearGradient></defs><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764l.007.065C71.391 17.92 63.96 13.516 57.891 3.924a47.099 47.099 0 01-.913-1.484 12.24 12.24 0 01-.427-.8 7.053 7.053 0 01-.578-1.535.1.1 0 00-.088-.1.138.138 0 00-.073 0c-.005 0-.013.009-.019.01l-.028.016.015-.026c-9.735 5.7-13.038 16.252-13.342 21.53a19.387 19.387 0 00-10.666 4.11 11.587 11.587 0 00-1-.757 17.968 17.968 0 01-.109-9.473 28.705 28.705 0 00-9.329 7.21h-.018c-1.536-1.947-1.428-8.367-1.34-9.708a6.928 6.928 0 00-1.294.687 28.225 28.225 0 00-3.788 3.245 33.845 33.845 0 00-3.623 4.347v.006-.007a32.733 32.733 0 00-5.2 11.743l-.052.256a61.89 61.89 0 00-.381 2.42c0 .029-.006.056-.009.085A36.937 36.937 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47zm-44.67 30.338c.181.087.351.18.537.264l.027.017q-.282-.135-.564-.281zm8.878-23.376zm31.952-4.934v-.037l.007.04z" fill="url(#a)"/><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764v.037l.007.04a35.1 35.1 0 01-1.206 26.159c-4.442 9.53-15.194 19.3-32.024 18.825-18.185-.515-34.2-14.01-37.194-31.683-.545-2.787 0-4.2.274-6.465A28.876 28.876 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47z" fill="url(#b)"/><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764v.037l.007.04a35.1 35.1 0 01-1.206 26.159c-4.442 9.53-15.194 19.3-32.024 18.825-18.185-.515-34.2-14.01-37.194-31.683-.545-2.787 0-4.2.274-6.465A28.876 28.876 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47z" fill="url(#c)"/><path d="M60.782 31.383c.084.059.162.118.241.177a21.1 21.1 0 00-3.6-4.695C45.377 14.817 54.266.742 55.765.027l.015-.022c-9.735 5.7-13.038 16.252-13.342 21.53.452-.031.9-.07 1.362-.07a19.56 19.56 0 0116.982 9.918z" fill="url(#d)"/><path d="M43.825 33.789c-.064.964-3.47 4.289-4.661 4.289-11.021 0-12.81 6.667-12.81 6.667.488 5.614 4.4 10.238 9.129 12.684.216.112.435.213.654.312q.569.252 1.138.466a17.235 17.235 0 005.043.973c19.317.906 23.059-23.1 9.119-30.066a13.38 13.38 0 019.345 2.269A19.56 19.56 0 0043.8 21.466c-.46 0-.91.038-1.362.069a19.387 19.387 0 00-10.666 4.11c.591.5 1.258 1.169 2.663 2.554 2.63 2.59 9.375 5.275 9.39 5.59z" fill="url(#e)"/><path d="M43.825 33.789c-.064.964-3.47 4.289-4.661 4.289-11.021 0-12.81 6.667-12.81 6.667.488 5.614 4.4 10.238 9.129 12.684.216.112.435.213.654.312q.569.252 1.138.466a17.235 17.235 0 005.043.973c19.317.906 23.059-23.1 9.119-30.066a13.38 13.38 0 019.345 2.269A19.56 19.56 0 0043.8 21.466c-.46 0-.91.038-1.362.069a19.387 19.387 0 00-10.666 4.11c.591.5 1.258 1.169 2.663 2.554 2.63 2.59 9.375 5.275 9.39 5.59z" fill="url(#f)"/><path d="M29.965 24.357c.314.2.573.374.8.53a17.968 17.968 0 01-.109-9.472 28.705 28.705 0 00-9.329 7.21c.189-.005 5.811-.106 8.638 1.732z" fill="url(#g)"/><path d="M5.354 42.159c2.991 17.674 19.009 31.168 37.194 31.683 16.83.476 27.582-9.294 32.024-18.825a35.1 35.1 0 001.206-26.158v-.037c0-.03-.006-.046 0-.037l.007.065c1.375 8.977-3.191 17.674-10.329 23.555l-.022.05c-13.908 11.327-27.218 6.834-29.912 5q-.282-.135-.564-.281c-8.109-3.876-11.459-11.264-10.741-17.6a9.953 9.953 0 01-9.181-5.775 14.618 14.618 0 0114.249-.572 19.3 19.3 0 0014.552.572c-.015-.315-6.76-3-9.39-5.59-1.405-1.385-2.072-2.052-2.663-2.553a11.587 11.587 0 00-1-.758c-.23-.157-.489-.327-.8-.531-2.827-1.838-8.449-1.737-8.635-1.732h-.018c-1.536-1.947-1.428-8.367-1.34-9.708a6.928 6.928 0 00-1.294.687 28.225 28.225 0 00-3.788 3.245 33.845 33.845 0 00-3.638 4.337v.006-.007a32.733 32.733 0 00-5.2 11.743c-.019.079-1.396 6.099-.717 9.22z" fill="url(#h)"/><path d="M57.425 26.865a21.1 21.1 0 013.6 4.7c.213.16.412.32.581.476 8.787 8.1 4.183 19.55 3.84 20.365 7.138-5.881 11.7-14.578 10.329-23.555C71.391 17.92 63.96 13.516 57.891 3.924a47.099 47.099 0 01-.913-1.484 12.24 12.24 0 01-.427-.8 7.053 7.053 0 01-.578-1.535.1.1 0 00-.088-.1.138.138 0 00-.073 0c-.005 0-.013.009-.019.01l-.028.016c-1.499.71-10.388 14.786 1.66 26.834z" fill="url(#i)"/><path d="M61.6 32.036a8.083 8.083 0 00-.581-.476c-.079-.06-.157-.118-.241-.177a13.38 13.38 0 00-9.345-2.27c13.94 6.97 10.2 30.973-9.119 30.067a17.235 17.235 0 01-5.043-.973q-.569-.213-1.138-.466c-.219-.1-.438-.2-.654-.312l.027.017c2.694 1.839 16 6.332 29.912-5l.022-.05c.347-.81 4.951-12.263-3.84-20.36z" fill="url(#j)"/><path d="M26.354 44.745s1.789-6.667 12.81-6.667c1.191 0 4.6-3.325 4.661-4.29a19.3 19.3 0 01-14.552-.571 14.618 14.618 0 00-14.249.572 9.953 9.953 0 009.181 5.775c-.718 6.337 2.632 13.725 10.741 17.6.181.087.351.18.537.264-4.733-2.445-8.641-7.07-9.129-12.683z" fill="url(#k)"/><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764l.007.065C71.391 17.92 63.96 13.516 57.891 3.924a47.099 47.099 0 01-.913-1.484 12.24 12.24 0 01-.427-.8 7.053 7.053 0 01-.578-1.535.1.1 0 00-.088-.1.138.138 0 00-.073 0c-.005 0-.013.009-.019.01l-.028.016.015-.026c-9.735 5.7-13.038 16.252-13.342 21.53.452-.031.9-.07 1.362-.07a19.56 19.56 0 0116.982 9.918 13.38 13.38 0 00-9.345-2.27c13.94 6.97 10.2 30.973-9.119 30.067a17.235 17.235 0 01-5.043-.973q-.569-.213-1.138-.466c-.219-.1-.438-.2-.654-.312l.027.017q-.282-.135-.564-.281c.181.087.351.18.537.264-4.733-2.446-8.641-7.07-9.129-12.684 0 0 1.789-6.667 12.81-6.667 1.191 0 4.6-3.325 4.661-4.29-.015-.314-6.76-3-9.39-5.59-1.405-1.384-2.072-2.051-2.663-2.552a11.587 11.587 0 00-1-.758 17.968 17.968 0 01-.109-9.473 28.705 28.705 0 00-9.329 7.21h-.018c-1.536-1.947-1.428-8.367-1.34-9.708a6.928 6.928 0 00-1.294.687 28.225 28.225 0 00-3.788 3.245 33.845 33.845 0 00-3.623 4.347v.006-.007a32.733 32.733 0 00-5.2 11.743l-.052.256c-.073.34-.4 2.073-.447 2.445 0 .028 0-.03 0 0A45.094 45.094 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47zm-3.845 1.99l.007.042z" fill="url(#l)"/></svg>
+            Firefox
+          </a>
+          <a href="https://github.com/GxAditya/QuickText" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+      <div class="hero-video">
+        <video autoplay loop muted playsinline>
+          <source src="quicktext.webm" type="video/webm">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo" class="demo-section">
+    <div class="demo-container">
+      <span class="section-label">Interactive Demo</span>
+      <h2 class="section-title">Try it now</h2>
+      
+      <div class="demo-card reveal">
+        <div class="demo-input-wrapper">
+          <input 
+            type="text" 
+            class="demo-input" 
+            id="demo-input"
+            placeholder="Type /intro, /thanks, /email and press space..."
+            autocomplete="off"
+          >
+        </div>
+        <div class="demo-output">
+          <div class="demo-output-label">Output</div>
+          <div class="demo-output-text" id="demo-output">Your expanded text will appear here...</div>
+        </div>
+        <div class="demo-hints">
+          <span class="hint" data-trigger="/intro">/intro</span>
+          <span class="hint" data-trigger="/thanks">/thanks</span>
+          <span class="hint" data-trigger="/email">/email</span>
+          <span class="hint" data-trigger="/meeting">/meeting</span>
+          <span class="hint" data-trigger="/phone">/phone</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="features">
+    <div class="features-container">
+      <div class="features-header reveal">
+        <div>
+          <span class="section-label">Features</span>
+          <h2 class="section-title">Built for efficiency</h2>
+        </div>
+        <div class="features-header-right">
+          <p>Everything you need to type faster and reclaim your time. Simple, powerful, and private by design.</p>
+        </div>
+      </div>
+
+      <div class="features-list">
+        <div class="feature reveal">
+          <span class="feature-number">01</span>
+          <h3>Instant Expansion</h3>
+          <p>Type a trigger like /intro and watch it instantly expand into your full template. No delays, no waiting.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="feature-number">02</span>
+          <h3>Custom Hotkeys</h3>
+          <p>Assign keyboard shortcuts to your most-used snippets for instant access anywhere on the web.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="feature-number">03</span>
+          <h3>Private & Secure</h3>
+          <p>All snippets are stored locally in your browser. No data ever leaves your device unless you export it.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="feature-number">04</span>
+          <h3>Easy Backup</h3>
+          <p>Export your snippets as JSON and import them across browsers or share with your team seamlessly.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="feature-number">05</span>
+          <h3>Works Everywhere</h3>
+          <p>Compatible with text inputs, textareas, and rich text editors across all websites you visit.</p>
+        </div>
+        <div class="feature reveal">
+          <span class="feature-number">06</span>
+          <h3>Simple Management</h3>
+          <p>Clean, intuitive interface to create, edit, and organize your snippets with minimal friction.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-container reveal">
+      <h2>Ready to type faster?</h2>
+      <p>Join thousands of users who save hours every week with QuickText.</p>
+      <div class="cta-actions">
+        <a href="https://chrome.google.com/webstore/detail/quicktext/your-extension-id" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="88" x2="215.29" y2="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="162.64" y1="148" x2="118.99" y2="223.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="93.36" y1="148" x2="49.71" y2="72.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+          Chrome Web Store
+        </a>
+        <a href="https://addons.mozilla.org/en-US/firefox/addon/gxquicktext/" class="btn btn-primary" style="background: #FF7139;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.419 81.967"><defs><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="80.797" cy="-8515.121" cx="-7907.187" id="b2"><stop stop-color="#ffbd4f" offset=".129"/><stop stop-color="#ffac31" offset=".186"/><stop stop-color="#ff9d17" offset=".247"/><stop stop-color="#ff980e" offset=".283"/><stop stop-color="#ff563b" offset=".403"/><stop stop-color="#ff3750" offset=".467"/><stop stop-color="#f5156c" offset=".71"/><stop stop-color="#eb0878" offset=".782"/><stop stop-color="#e50080" offset=".86"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="80.797" cy="-8482.089" cx="-7936.711" id="c2"><stop stop-color="#960e18" offset=".3"/><stop stop-opacity=".74" stop-color="#b11927" offset=".351"/><stop stop-opacity=".343" stop-color="#db293d" offset=".435"/><stop stop-opacity=".094" stop-color="#f5334b" offset=".497"/><stop stop-opacity="0" stop-color="#ff3750" offset=".53"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="58.534" cy="-8533.457" cx="-7926.97" id="d2"><stop stop-color="#fff44f" offset=".132"/><stop stop-color="#ffdc3e" offset=".252"/><stop stop-color="#ff9d12" offset=".506"/><stop stop-color="#ff980e" offset=".526"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="38.471" cy="-8460.984" cx="-7945.648" id="e2"><stop stop-color="#3a8ee6" offset=".353"/><stop stop-color="#5c79f0" offset=".472"/><stop stop-color="#9059ff" offset=".669"/><stop stop-color="#c139e6" offset="1"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="matrix(.972 -.235 .275 1.138 10095.002 7833.794)" r="20.397" cy="-8491.546" cx="-7935.62" id="f2"><stop stop-opacity="0" stop-color="#9059ff" offset=".206"/><stop stop-opacity=".064" stop-color="#8c4ff3" offset=".278"/><stop stop-opacity=".45" stop-color="#7716a8" offset=".747"/><stop stop-opacity=".6" stop-color="#6e008b" offset=".975"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="27.676" cy="-8518.427" cx="-7937.731" id="g2"><stop stop-color="#ffe226" offset="0"/><stop stop-color="#ffdb27" offset=".121"/><stop stop-color="#ffc82a" offset=".295"/><stop stop-color="#ffa930" offset=".502"/><stop stop-color="#ff7e37" offset=".732"/><stop stop-color="#ff7139" offset=".792"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="118.081" cy="-8535.981" cx="-7915.977" id="h2"><stop stop-color="#fff44f" offset=".113"/><stop stop-color="#ff980e" offset=".456"/><stop stop-color="#ff5634" offset=".622"/><stop stop-color="#ff3647" offset=".716"/><stop stop-color="#e31587" offset=".904"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="matrix(.105 .995 -.653 .069 -4680.304 8470.187)" r="86.499" cy="-8522.859" cx="-7927.165" id="i2"><stop stop-color="#fff44f" offset="0"/><stop stop-color="#ffe847" offset=".06"/><stop stop-color="#ffc830" offset=".168"/><stop stop-color="#ff980e" offset=".304"/><stop stop-color="#ff8b16" offset=".356"/><stop stop-color="#ff672a" offset=".455"/><stop stop-color="#ff3647" offset=".57"/><stop stop-color="#e31587" offset=".737"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="73.72" cy="-8508.176" cx="-7938.383" id="j2"><stop stop-color="#fff44f" offset=".137"/><stop stop-color="#ff980e" offset=".48"/><stop stop-color="#ff5634" offset=".592"/><stop stop-color="#ff3647" offset=".655"/><stop stop-color="#e31587" offset=".904"/></radialGradient><radialGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(7978.7 8523.996)" r="80.686" cy="-8503.861" cx="-7918.923" id="k2"><stop stop-color="#fff44f" offset=".094"/><stop stop-color="#ffe141" offset=".231"/><stop stop-color="#ffaf1e" offset=".509"/><stop stop-color="#ff980e" offset=".626"/></radialGradient><linearGradient gradientTransform="translate(3.7 -.004)" gradientUnits="userSpaceOnUse" y2="74.468" x2="6.447" y1="12.393" x1="70.786" id="a2"><stop stop-color="#fff44f" offset=".048"/><stop stop-color="#ffe847" offset=".111"/><stop stop-color="#ffc830" offset=".225"/><stop stop-color="#ff980e" offset=".368"/><stop stop-color="#ff8b16" offset=".401"/><stop stop-color="#ff672a" offset=".462"/><stop stop-color="#ff3647" offset=".534"/><stop stop-color="#e31587" offset=".705"/></linearGradient><linearGradient gradientTransform="translate(3.7 -.004)" gradientUnits="userSpaceOnUse" y2="66.806" x2="15.267" y1="12.061" x1="70.013" id="l2"><stop stop-opacity=".8" stop-color="#fff44f" offset=".167"/><stop stop-opacity=".634" stop-color="#fff44f" offset=".266"/><stop stop-opacity=".217" stop-color="#fff44f" offset=".489"/><stop stop-opacity="0" stop-color="#fff44f" offset=".6"/></linearGradient></defs><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764l.007.065C71.391 17.92 63.96 13.516 57.891 3.924a47.099 47.099 0 01-.913-1.484 12.24 12.24 0 01-.427-.8 7.053 7.053 0 01-.578-1.535.1.1 0 00-.088-.1.138.138 0 00-.073 0c-.005 0-.013.009-.019.01l-.028.016.015-.026c-9.735 5.7-13.038 16.252-13.342 21.53a19.387 19.387 0 00-10.666 4.11 11.587 11.587 0 00-1-.757 17.968 17.968 0 01-.109-9.473 28.705 28.705 0 00-9.329 7.21h-.018c-1.536-1.947-1.428-8.367-1.34-9.708a6.928 6.928 0 00-1.294.687 28.225 28.225 0 00-3.788 3.245 33.845 33.845 0 00-3.623 4.347v.006-.007a32.733 32.733 0 00-5.2 11.743l-.052.256a61.89 61.89 0 00-.381 2.42c0 .029-.006.056-.009.085A36.937 36.937 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47zm-44.67 30.338c.181.087.351.18.537.264l.027.017q-.282-.135-.564-.281zm8.878-23.376zm31.952-4.934v-.037l.007.04z" fill="url(#a2)"/><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764v.037l.007.04a35.1 35.1 0 01-1.206 26.159c-4.442 9.53-15.194 19.3-32.024 18.825-18.185-.515-34.2-14.01-37.194-31.683-.545-2.787 0-4.2.274-6.465A28.876 28.876 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47z" fill="url(#b2)"/><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764v.037l.007.04a35.1 35.1 0 01-1.206 26.159c-4.442 9.53-15.194 19.3-32.024 18.825-18.185-.515-34.2-14.01-37.194-31.683-.545-2.787 0-4.2.274-6.465A28.876 28.876 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47z" fill="url(#c2)"/><path d="M60.782 31.383c.084.059.162.118.241.177a21.1 21.1 0 00-3.6-4.695C45.377 14.817 54.266.742 55.765.027l.015-.022c-9.735 5.7-13.038 16.252-13.342 21.53.452-.031.9-.07 1.362-.07a19.56 19.56 0 0116.982 9.918z" fill="url(#d2)"/><path d="M43.825 33.789c-.064.964-3.47 4.289-4.661 4.289-11.021 0-12.81 6.667-12.81 6.667.488 5.614 4.4 10.238 9.129 12.684.216.112.435.213.654.312q.569.252 1.138.466a17.235 17.235 0 005.043.973c19.317.906 23.059-23.1 9.119-30.066a13.38 13.38 0 019.345 2.269A19.56 19.56 0 0043.8 21.466c-.46 0-.91.038-1.362.069a19.387 19.387 0 00-10.666 4.11c.591.5 1.258 1.169 2.663 2.554 2.63 2.59 9.375 5.275 9.39 5.59z" fill="url(#e2)"/><path d="M43.825 33.789c-.064.964-3.47 4.289-4.661 4.289-11.021 0-12.81 6.667-12.81 6.667.488 5.614 4.4 10.238 9.129 12.684.216.112.435.213.654.312q.569.252 1.138.466a17.235 17.235 0 005.043.973c19.317.906 23.059-23.1 9.119-30.066a13.38 13.38 0 019.345 2.269A19.56 19.56 0 0043.8 21.466c-.46 0-.91.038-1.362.069a19.387 19.387 0 00-10.666 4.11c.591.5 1.258 1.169 2.663 2.554 2.63 2.59 9.375 5.275 9.39 5.59z" fill="url(#f2)"/><path d="M29.965 24.357c.314.2.573.374.8.53a17.968 17.968 0 01-.109-9.472 28.705 28.705 0 00-9.329 7.21c.189-.005 5.811-.106 8.638 1.732z" fill="url(#g2)"/><path d="M5.354 42.159c2.991 17.674 19.009 31.168 37.194 31.683 16.83.476 27.582-9.294 32.024-18.825a35.1 35.1 0 001.206-26.158v-.037c0-.03-.006-.046 0-.037l.007.065c1.375 8.977-3.191 17.674-10.329 23.555l-.022.05c-13.908 11.327-27.218 6.834-29.912 5q-.282-.135-.564-.281c-8.109-3.876-11.459-11.264-10.741-17.6a9.953 9.953 0 01-9.181-5.775 14.618 14.618 0 0114.249-.572 19.3 19.3 0 0014.552.572c-.015-.315-6.76-3-9.39-5.59-1.405-1.385-2.072-2.052-2.663-2.553a11.587 11.587 0 00-1-.758c-.23-.157-.489-.327-.8-.531-2.827-1.838-8.449-1.737-8.635-1.732h-.018c-1.536-1.947-1.428-8.367-1.34-9.708a6.928 6.928 0 00-1.294.687 28.225 28.225 0 00-3.788 3.245 33.845 33.845 0 00-3.638 4.337v.006-.007a32.733 32.733 0 00-5.2 11.743c-.019.079-1.396 6.099-.717 9.22z" fill="url(#h2)"/><path d="M57.425 26.865a21.1 21.1 0 013.6 4.7c.213.16.412.32.581.476 8.787 8.1 4.183 19.55 3.84 20.365 7.138-5.881 11.7-14.578 10.329-23.555C71.391 17.92 63.96 13.516 57.891 3.924a47.099 47.099 0 01-.913-1.484 12.24 12.24 0 01-.427-.8 7.053 7.053 0 01-.578-1.535.1.1 0 00-.088-.1.138.138 0 00-.073 0c-.005 0-.013.009-.019.01l-.028.016c-1.499.71-10.388 14.786 1.66 26.834z" fill="url(#i2)"/><path d="M61.6 32.036a8.083 8.083 0 00-.581-.476c-.079-.06-.157-.118-.241-.177a13.38 13.38 0 00-9.345-2.27c13.94 6.97 10.2 30.973-9.119 30.067a17.235 17.235 0 01-5.043-.973q-.569-.213-1.138-.466c-.219-.1-.438-.2-.654-.312l.027.017c2.694 1.839 16 6.332 29.912-5l.022-.05c.347-.81 4.951-12.263-3.84-20.36z" fill="url(#j2)"/><path d="M26.354 44.745s1.789-6.667 12.81-6.667c1.191 0 4.6-3.325 4.661-4.29a19.3 19.3 0 01-14.552-.571 14.618 14.618 0 00-14.249.572 9.953 9.953 0 009.181 5.775c-.718 6.337 2.632 13.725 10.741 17.6.181.087.351.18.537.264-4.733-2.445-8.641-7.07-9.129-12.683z" fill="url(#k2)"/><path d="M79.616 26.827c-1.684-4.052-5.1-8.427-7.775-9.81a40.266 40.266 0 013.925 11.764l.007.065C71.391 17.92 63.96 13.516 57.891 3.924a47.099 47.099 0 01-.913-1.484 12.24 12.24 0 01-.427-.8 7.053 7.053 0 01-.578-1.535.1.1 0 00-.088-.1.138.138 0 00-.073 0c-.005 0-.013.009-.019.01l-.028.016.015-.026c-9.735 5.7-13.038 16.252-13.342 21.53.452-.031.9-.07 1.362-.07a19.56 19.56 0 0116.982 9.918 13.38 13.38 0 00-9.345-2.27c13.94 6.97 10.2 30.973-9.119 30.067a17.235 17.235 0 01-5.043-.973q-.569-.213-1.138-.466c-.219-.1-.438-.2-.654-.312l.027.017q-.282-.135-.564-.281c.181.087.351.18.537.264-4.733-2.446-8.641-7.07-9.129-12.684 0 0 1.789-6.667 12.81-6.667 1.191 0 4.6-3.325 4.661-4.29-.015-.314-6.76-3-9.39-5.59-1.405-1.384-2.072-2.051-2.663-2.552a11.587 11.587 0 00-1-.758 17.968 17.968 0 01-.109-9.473 28.705 28.705 0 00-9.329 7.21h-.018c-1.536-1.947-1.428-8.367-1.34-9.708a6.928 6.928 0 00-1.294.687 28.225 28.225 0 00-3.788 3.245 33.845 33.845 0 00-3.623 4.347v.006-.007a32.733 32.733 0 00-5.2 11.743l-.052.256c-.073.34-.4 2.073-.447 2.445 0 .028 0-.03 0 0A45.094 45.094 0 005 41.042v.2a38.759 38.759 0 0076.954 6.554c.065-.5.118-.995.176-1.5a39.857 39.857 0 00-2.514-19.47zm-3.845 1.99l.007.042z" fill="url(#l2)"/></svg>
+          Firefox Add-ons
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-container">
+      <div class="footer-left">
+        <a href="#" class="logo">
+          <img src="../Chromium/images/icon48.png" alt="QuickText">
+          <span class="logo-text">QuickText</span>
+        </a>
+        <span>Built with care for faster typing</span>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/GxAditya/QuickText">GitHub</a>
+        <a href="mailto:support@quicktext.app">Support</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const demoSnippets = {
+      '/intro': "Hi there!\n\nThanks for reaching out. I'm excited to connect and learn more about what you're working on.\n\nBest regards",
+      '/thanks': "Thank you so much! I really appreciate your help with this.",
+      '/email': 'john.doe@example.com',
+      '/meeting': "Would you be available for a quick call this week? I'd love to discuss and get your thoughts.\n\nLet me know what time works best for you.",
+      '/phone': '+1 (555) 123-4567'
+    };
+
+    const demoInput = document.getElementById('demo-input');
+    const demoOutput = document.getElementById('demo-output');
+
+    demoInput.addEventListener('input', function(e) {
+      const text = e.target.value;
+      const words = text.split(/\s+/);
+      const lastWord = words[words.length - 1];
+
+      if (demoSnippets[lastWord]) {
+        demoOutput.textContent = demoSnippets[lastWord];
+        demoOutput.classList.add('active');
+        return;
+      }
+
+      if (text.endsWith(' ') && words.length >= 2) {
+        const prevWord = words[words.length - 2];
+        if (demoSnippets[prevWord]) {
+          const before = words.slice(0, -2).join(' ');
+          const expansion = demoSnippets[prevWord];
+          e.target.value = (before ? before + ' ' : '') + expansion + ' ';
+          
+          demoOutput.innerHTML = `<span style="color: var(--text); font-weight: 500;">Expanded:</span> ${prevWord} → ${expansion.substring(0, 50)}${expansion.length > 50 ? '...' : ''}`;
+          demoOutput.classList.add('active');
+          return;
+        }
+      }
+
+      if (!text) {
+        demoOutput.textContent = 'Your expanded text will appear here...';
+        demoOutput.classList.remove('active');
+      }
+    });
+
+    document.querySelectorAll('.hint').forEach(hint => {
+      hint.addEventListener('click', () => {
+        const trigger = hint.dataset.trigger;
+        demoInput.value = trigger + ' ';
+        demoInput.focus();
+        demoOutput.textContent = demoSnippets[trigger];
+        demoOutput.classList.add('active');
+      });
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -80px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

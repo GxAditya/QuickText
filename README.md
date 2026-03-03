@@ -14,7 +14,9 @@ A lightweight and powerful browser extension that replaces short triggers and ho
 
 <div align="center">
 
-> *Add your demo video here*
+<video src="docs/quicktext.webm" autoplay loop muted playsinline style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);">
+  Your browser does not support the video tag.
+</video>
 
 </div>
 
