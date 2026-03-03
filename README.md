@@ -14,7 +14,7 @@ A lightweight and powerful browser extension that replaces short triggers and ho
 
 <div align="center">
 
-[![Demo Video](https://img.shields.io/badge/Watch-Demo-FF7139?style=for-the-badge)](docs/quicktext.webm)
+![Demo](quicktext.gif)
 
 </div>
 
