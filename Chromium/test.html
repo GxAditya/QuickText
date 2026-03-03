@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuickText Test</title>
+</head>
+<body>
+    <h1>QuickText Extension Test</h1>
+    
+    <h2>Test Input Fields</h2>
+    
+    <p>Text Input (type: text):</p>
+    <input type="text" id="text-input" placeholder="Type /hello here" style="width: 300px; padding: 10px;">
+    
+    <p>Search Input (type: search):</p>
+    <input type="search" id="search-input" placeholder="Type /hello here" style="width: 300px; padding: 10px;">
+    
+    <p>Textarea:</p>
+    <textarea id="textarea" placeholder="Type /hello here" style="width: 300px; height: 100px; padding: 10px;"></textarea>
+    
+    <p>Content Editable Div:</p>
+    <div contenteditable="true" id="contenteditable" style="width: 300px; min-height: 50px; padding: 10px; border: 1px solid #ccc;">Type /hello here</div>
+    
+    <h2>Instructions</h2>
+    <ol>
+        <li>Install the QuickText extension</li>
+        <li>Create a snippet with trigger "/hello" and value "Hello World!"</li>
+        <li>Type "/hello" in any of the fields above and press space or enter</li>
+        <li>The text should automatically expand to "Hello World!"</li>
+    </ol>
+    
+    <h2>Debug Info</h2>
+    <div id="debug-info"></div>
+    
+    <script>
+        // Add some debug information
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugInfo = document.getElementById('debug-info');
+            
+            // Log input events
+            document.querySelectorAll('input, textarea, [contenteditable]').forEach(element => {
+                element.addEventListener('input', function(e) {
+                    console.log('Input event on:', e.target.tagName, e.target.id || 'no-id', e.target.value || e.target.textContent);
+                });
+                
+                element.addEventListener('keydown', function(e) {
+                    console.log('Keydown on:', e.target.tagName, e.target.id || 'no-id', 'Key:', e.key);
+                });
+            });
+            
+            // Check if extension is loaded
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                debugInfo.innerHTML = '<p style="color: green;">Chrome extension API available</p>';
+            } else {
+                debugInfo.innerHTML = '<p style="color: red;">Chrome extension API not available</p>';
+            }
+        });
+    </script>
+</body>
+</html>

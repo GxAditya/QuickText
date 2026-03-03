@@ -3,6 +3,15 @@ console.log("QuickText content script loaded.");
 
 let snippets = [];
 let hotkeySnippets = [];
+let isExpanding = false; // Flag to prevent re-expansion during editing
+let recentlyExpanded = new Map(); // Track recently expanded content with timestamps
+
+// Function to sanitize HTML to prevent XSS attacks
+function sanitizeHTML(html) {
+  const div = document.createElement('div');
+  div.textContent = html;
+  return div.innerHTML;
+}
 
 // Load snippets from storage
 function loadSnippetsFromStorage() {
@@ -28,19 +37,44 @@ loadSnippetsFromStorage();
 function expandSnippet(targetElement, trigger, value, isRichText = false) {
   if (!targetElement) return;
 
+  // Check if this content was recently expanded to prevent loops
+  const elementId = targetElement.id || targetElement.tagName + '_' + (targetElement.className || '');
+  const now = Date.now();
+  const recentExpansion = recentlyExpanded.get(elementId);
+  
+  // Clean up old entries (older than 2 seconds)
+  for (const [key, expansion] of recentlyExpanded.entries()) {
+    if (now - expansion.timestamp > 2000) {
+      recentlyExpanded.delete(key);
+    }
+  }
+  
+  if (recentExpansion && (now - recentExpansion.timestamp) < 1000) {
+    console.log('QuickText: Skipping expansion - content was recently expanded');
+    return false;
+  }
+
   if (targetElement.isContentEditable) {
     // Handle rich text in contentEditable elements
     const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      console.log('QuickText: No selection found in contentEditable');
+      return false;
+    }
+    
     const range = selection.getRangeAt(0);
     const textNode = range.startContainer;
     const textContent = textNode.textContent;
     const cursorPosition = range.startOffset;
     const textBeforeCursor = textContent.substring(0, cursorPosition);
 
+    console.log('QuickText: ContentEditable analysis:', { textContent, cursorPosition, textBeforeCursor });
+
     // Find the last occurrence of the trigger before the cursor
     const triggerStartIndex = textBeforeCursor.lastIndexOf(trigger);
 
     if (triggerStartIndex !== -1 && textBeforeCursor.endsWith(trigger)) {
+      console.log('QuickText: Expanding in contentEditable');
       // Create a range to delete the trigger text
       const deleteRange = document.createRange();
       deleteRange.setStart(textNode, triggerStartIndex);
@@ -49,12 +83,11 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
 
       // Insert the snippet value
       if (isRichText) {
-        // Insert as HTML for rich text
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = value;
+        // Insert as HTML for rich text with sanitization
+        const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(value), 'text/html');
         const fragment = document.createDocumentFragment();
-        while (tempDiv.firstChild) {
-          fragment.appendChild(tempDiv.firstChild);
+        while (parsedDoc.body.firstChild) {
+          fragment.appendChild(parsedDoc.body.firstChild);
         }
         range.insertNode(fragment);
       } else {
@@ -68,7 +101,12 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
       selection.removeAllRanges();
       selection.addRange(range);
 
+      // Track this expansion
+      recentlyExpanded.set(elementId, { timestamp: now, trigger, value });
+
       return true;
+    } else {
+      console.log('QuickText: Trigger not found at cursor position in contentEditable');
     }
   } else {
     // For regular input/textarea elements
@@ -76,10 +114,13 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
     const selectionStart = targetElement.selectionStart;
     const textBeforeCursor = originalValue.substring(0, selectionStart);
 
+    console.log('QuickText: Input/textarea analysis:', { originalValue, selectionStart, textBeforeCursor });
+
     // Find the last occurrence of the trigger before the cursor
     const triggerStartIndex = textBeforeCursor.lastIndexOf(trigger);
 
     if (triggerStartIndex !== -1 && textBeforeCursor.endsWith(trigger)) {
+      console.log('QuickText: Expanding in input/textarea');
       const textAfterCursor = originalValue.substring(selectionStart);
       
       // Replace the trigger with the snippet value
@@ -87,9 +128,8 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
       let insertValue = value;
       if (isRichText) {
         // Simple HTML stripping for non-contentEditable fields
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = value;
-        insertValue = tempDiv.textContent;
+        const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(value), 'text/html');
+        insertValue = parsedDoc.body.textContent || '';
       }
       
       targetElement.value = textBeforeCursor.substring(0, triggerStartIndex) + insertValue + textAfterCursor;
@@ -102,7 +142,12 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
       targetElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
       targetElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
 
+      // Track this expansion
+      recentlyExpanded.set(elementId, { timestamp: now, trigger, value });
+
       return true;
+    } else {
+      console.log('QuickText: Trigger not found at cursor position in input/textarea');
     }
   }
   return false;
@@ -115,11 +160,18 @@ document.addEventListener('input', (event) => {
     const currentText = target.isContentEditable ? target.textContent : target.value;
     if (!currentText) return;
 
+    console.log('QuickText: Input detected:', currentText, 'in', target.tagName, target.id || 'no-id');
+    console.log('QuickText: Available snippets:', snippets);
+
     for (const snippet of snippets) {
       if (currentText.endsWith(snippet.trigger)) {
+        console.log('QuickText: Trigger matched:', snippet.trigger, 'expanding to:', snippet.value);
         // Use the enhanced expandSnippet function that handles both plain and rich text
         if (expandSnippet(target, snippet.trigger, snippet.value, snippet.isRichText)) {
+          console.log('QuickText: Snippet expanded successfully');
           break; // Snippet expanded, no need to check others
+        } else {
+          console.log('QuickText: Failed to expand snippet');
         }
       }
     }
@@ -150,8 +202,13 @@ document.addEventListener('keydown', (event) => {
         // Insert the snippet value
         if (activeElement.isContentEditable) {
           if (snippet.isRichText) {
-            // Insert as HTML
-            document.execCommand('insertHTML', false, snippet.value);
+            // Insert as HTML with sanitization
+            const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(snippet.value), 'text/html');
+            const fragment = document.createDocumentFragment();
+            while (parsedDoc.body.firstChild) {
+              fragment.appendChild(parsedDoc.body.firstChild);
+            }
+            document.execCommand('insertNode', false, fragment);
           } else {
             // Insert as plain text
             document.execCommand('insertText', false, snippet.value);
@@ -164,9 +221,9 @@ document.addEventListener('keydown', (event) => {
           // For rich text in regular inputs, strip HTML
           let insertValue = snippet.value;
           if (snippet.isRichText) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = insertValue;
-            insertValue = tempDiv.textContent;
+            // Simple HTML stripping for non-contentEditable fields
+            const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(snippet.value), 'text/html');
+            insertValue = parsedDoc.body.textContent || '';
           }
           
           activeElement.value = activeElement.value.substring(0, start) + 
@@ -203,8 +260,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (activeElement.isContentEditable) {
         // For contentEditable elements, insert HTML if value contains it, otherwise plain text
         if (request.isRichText) {
-          document.execCommand('insertHTML', false, request.value);
+          // Insert as HTML with sanitization
+          const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(request.value), 'text/html');
+          const fragment = document.createDocumentFragment();
+          while (parsedDoc.body.firstChild) {
+            fragment.appendChild(parsedDoc.body.firstChild);
+          }
+          document.execCommand('insertNode', false, fragment);
         } else {
+          // Insert as plain text
           document.execCommand('insertText', false, request.value);
         }
       } else {
@@ -215,9 +279,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // For rich text in regular inputs, strip HTML
         let insertValue = request.value;
         if (request.isRichText) {
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = insertValue;
-          insertValue = tempDiv.textContent;
+          // Simple HTML stripping for non-contentEditable fields
+          const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(request.value), 'text/html');
+          insertValue = parsedDoc.body.textContent || '';
         }
         
         activeElement.value = activeElement.value.substring(0, start) + insertValue + activeElement.value.substring(end);

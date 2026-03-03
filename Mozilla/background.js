@@ -1,6 +1,12 @@
 // background.js for Firefox
 console.log("QuickText background script started.");
 
+// Listener for browser action click (toolbar icon)
+browser.browserAction.onClicked.addListener(async (tab) => {
+  console.log('Extension icon clicked, opening options page');
+  browser.runtime.openOptionsPage();
+});
+
 // Function to register hotkeys based on snippets
 function registerHotkeys(snippets) {
   // Store hotkey snippets for reference

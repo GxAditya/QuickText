@@ -54,13 +54,18 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+// Listener for extension action click (toolbar icon)
+chrome.action.onClicked.addListener(async (tab) => {
+  console.log('Extension icon clicked, opening options page');
+  chrome.runtime.openOptionsPage();
+});
+
 // Listener for commands defined in manifest.json (e.g., opening options page)
 chrome.commands.onCommand.addListener(async (command) => {
   console.log(`Command received: ${command}`);
   if (command === "_execute_action") { // This is the command to open the popup (options.html)
-    // This command by default opens the popup if specified in manifest action.default_popup
-    // If we wanted to do something else, or ensure options page opens:
-    // chrome.runtime.openOptionsPage();
+    // Open the options page since we removed the popup
+    chrome.runtime.openOptionsPage();
   }
   // Handle other custom commands if we define them for specific snippets
   // This is where we would map manifest-defined hotkeys to specific snippet expansions.

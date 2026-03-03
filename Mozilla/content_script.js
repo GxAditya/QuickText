@@ -3,21 +3,24 @@ console.log("QuickText content script loaded.");
 
 let snippets = [];
 let hotkeySnippets = [];
+let isExpanding = false; // Flag to prevent re-expansion during editing
+let recentlyExpanded = new Map(); // Track recently expanded content with timestamps
 
 // Function to sanitize HTML content to prevent XSS attacks
 function sanitizeHTML(html) {
   const doc = new DOMParser().parseFromString('<div></div>', 'text/html');
   const container = doc.body.firstChild;
   
-  // Set the potentially unsafe HTML
-  container.innerHTML = html;
+  // Use DOMParser to parse the HTML safely
+  const parsedDoc = new DOMParser().parseFromString(html, 'text/html');
+  const sanitizedContent = parsedDoc.body;
   
   // Remove potentially dangerous elements and attributes
-  const scripts = container.querySelectorAll('script, iframe, object, embed, form');
+  const scripts = sanitizedContent.querySelectorAll('script, iframe, object, embed, form');
   scripts.forEach(node => node.remove());
   
   // Remove dangerous attributes (event handlers, javascript: URLs)
-  const allElements = container.querySelectorAll('*');
+  const allElements = sanitizedContent.querySelectorAll('*');
   allElements.forEach(el => {
     Array.from(el.attributes).forEach(attr => {
       // Remove on* event handlers and javascript: URLs
@@ -29,7 +32,7 @@ function sanitizeHTML(html) {
     });
   });
   
-  return container.innerHTML;
+  return sanitizedContent.innerHTML;
 }
 
 // Load snippets from storage
@@ -56,19 +59,44 @@ loadSnippetsFromStorage();
 function expandSnippet(targetElement, trigger, value, isRichText = false) {
   if (!targetElement) return;
 
+  // Check if this content was recently expanded to prevent loops
+  const elementId = targetElement.id || targetElement.tagName + '_' + (targetElement.className || '');
+  const now = Date.now();
+  const recentExpansion = recentlyExpanded.get(elementId);
+  
+  // Clean up old entries (older than 2 seconds)
+  for (const [key, expansion] of recentlyExpanded.entries()) {
+    if (now - expansion.timestamp > 2000) {
+      recentlyExpanded.delete(key);
+    }
+  }
+  
+  if (recentExpansion && (now - recentExpansion.timestamp) < 1000) {
+    console.log('QuickText: Skipping expansion - content was recently expanded');
+    return false;
+  }
+
   if (targetElement.isContentEditable) {
     // Handle rich text in contentEditable elements
     const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      console.log('QuickText: No selection found in contentEditable');
+      return false;
+    }
+    
     const range = selection.getRangeAt(0);
     const textNode = range.startContainer;
     const textContent = textNode.textContent;
     const cursorPosition = range.startOffset;
     const textBeforeCursor = textContent.substring(0, cursorPosition);
 
+    console.log('QuickText: ContentEditable analysis:', { textContent, cursorPosition, textBeforeCursor });
+
     // Find the last occurrence of the trigger before the cursor
     const triggerStartIndex = textBeforeCursor.lastIndexOf(trigger);
 
     if (triggerStartIndex !== -1 && textBeforeCursor.endsWith(trigger)) {
+      console.log('QuickText: Expanding in contentEditable');
       // Create a range to delete the trigger text
       const deleteRange = document.createRange();
       deleteRange.setStart(textNode, triggerStartIndex);
@@ -78,13 +106,10 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
       // Insert the snippet value
       if (isRichText) {
         // Insert as HTML for rich text with sanitization
-        const tempDiv = document.createElement('div');
-        // Sanitize the HTML content before setting innerHTML
-        const sanitizedValue = sanitizeHTML(value);
-        tempDiv.innerHTML = sanitizedValue;
+        const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(value), 'text/html');
         const fragment = document.createDocumentFragment();
-        while (tempDiv.firstChild) {
-          fragment.appendChild(tempDiv.firstChild);
+        while (parsedDoc.body.firstChild) {
+          fragment.appendChild(parsedDoc.body.firstChild);
         }
         range.insertNode(fragment);
       } else {
@@ -98,7 +123,12 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
       selection.removeAllRanges();
       selection.addRange(range);
 
+      // Track this expansion
+      recentlyExpanded.set(elementId, { timestamp: now, trigger, value });
+
       return true;
+    } else {
+      console.log('QuickText: Trigger not found at cursor position in contentEditable');
     }
   } else {
     // For regular input/textarea elements
@@ -110,6 +140,7 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
     const triggerStartIndex = textBeforeCursor.lastIndexOf(trigger);
 
     if (triggerStartIndex !== -1 && textBeforeCursor.endsWith(trigger)) {
+      console.log('QuickText: Expanding in input/textarea');
       const textAfterCursor = originalValue.substring(selectionStart);
       
       // Replace the trigger with the snippet value
@@ -117,11 +148,8 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
       let insertValue = value;
       if (isRichText) {
         // Simple HTML stripping for non-contentEditable fields
-        const tempDiv = document.createElement('div');
-        // Sanitize the HTML content before setting innerHTML
-        const sanitizedValue = sanitizeHTML(value);
-        tempDiv.innerHTML = sanitizedValue;
-        insertValue = tempDiv.textContent;
+        const parsedDoc = new DOMParser().parseFromString(sanitizeHTML(value), 'text/html');
+        insertValue = parsedDoc.body.textContent || '';
       }
       
       targetElement.value = textBeforeCursor.substring(0, triggerStartIndex) + insertValue + textAfterCursor;
@@ -130,7 +158,16 @@ function expandSnippet(targetElement, trigger, value, isRichText = false) {
       const newCursorPosition = triggerStartIndex + insertValue.length;
       targetElement.setSelectionRange(newCursorPosition, newCursorPosition);
 
+      // Dispatch input and change events to ensure the website reacts to the change
+      targetElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+      targetElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+
+      // Track this expansion
+      recentlyExpanded.set(elementId, { timestamp: now, trigger, value });
+
       return true;
+    } else {
+      console.log('QuickText: Trigger not found at cursor position in input/textarea');
     }
   }
   return false;
@@ -161,17 +198,25 @@ function checkForTextTriggers(event) {
     textBeforeCursor = targetElement.value.substring(0, targetElement.selectionStart);
   }
   
+  console.log('QuickText: Input detected:', textBeforeCursor, 'in', targetElement.tagName, targetElement.id || 'no-id');
+  console.log('QuickText: Available snippets:', snippets);
+  
   // Check if any snippet trigger is at the end of the text before cursor
   for (const snippet of snippets) {
     if (textBeforeCursor.endsWith(snippet.trigger)) {
+      console.log('QuickText: Trigger matched:', snippet.trigger, 'expanding to:', snippet.value);
       // Prevent default behavior for the current key press
       event.preventDefault();
       event.stopPropagation();
       
-      // Expand the snippet
-      const isRichText = snippet.value.includes('<') && snippet.value.includes('>');
-      expandSnippet(targetElement, snippet.trigger, snippet.value, isRichText);
-      break;
+      // Expand the snippet with proper isRichText handling
+      const isRichText = snippet.isRichText || false;
+      if (expandSnippet(targetElement, snippet.trigger, snippet.value, isRichText)) {
+        console.log('QuickText: Snippet expanded successfully');
+        break;
+      } else {
+        console.log('QuickText: Failed to expand snippet');
+      }
     }
   }
 }

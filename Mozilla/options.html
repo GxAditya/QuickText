@@ -1,174 +1,448 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <title>QuickText Options</title>
   <meta charset="utf-8">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+    :root {
+      --qt-bg: #fafafa;
+      --qt-surface: #ffffff;
+      --qt-border: #e5e5e5;
+      --qt-text-primary: #1a1a1a;
+      --qt-text-secondary: #525252;
+      --qt-text-tertiary: #a3a3a3;
+      /* Color tokens extracted from actual logo */
+      --qt-accent-blue: #00a8cc;
+      --qt-accent-teal: #00d4aa;
+      --qt-accent-light: #7dd3c0;
+      --qt-accent-dark: #0086a8;
+      --qt-accent: var(--qt-accent-blue);
+      --qt-radius: 6px;
+      --qt-transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+      --qt-font-display: "Manrope", system-ui, -apple-system, sans-serif;
+      --qt-font-body: "Manrope", system-ui, -apple-system, sans-serif;
+      --qt-font-mono: "JetBrains Mono", Consolas, monospace;
+      /* Tight tracking: -3% to -5% */
+      --qt-tracking-tight: -0.05em;
+      --qt-tracking-body: -0.04em;
+      --qt-tracking-mono: -0.03em;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: sans-serif;
-      margin: 20px;
-      min-width: 400px;
-      color: #333;
-      background-color: #f9f9f9;
+      margin: 0;
+      min-height: 100vh;
+      width: 100%;
+      padding: 40px;
+      color: var(--qt-text-primary);
+      font-family: var(--qt-font-body);
+      font-size: 14px;
+      letter-spacing: var(--qt-tracking-body);
+      background: var(--qt-bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    h1 {
-      font-size: 1.5em;
-      color: #4CAF50;
-      border-bottom: 2px solid #4CAF50;
-      padding-bottom: 10px;
+
+    .qt-container {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    h2 {
-      font-size: 1.2em;
-      color: #555;
-      margin-top: 20px;
+
+    .qt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 48px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--qt-border);
     }
-    table {
+
+    .qt-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .qt-logo-image {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--qt-radius);
+      object-fit: cover;
+    }
+
+    .qt-logo-text {
+      font-family: var(--qt-font-display);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: var(--qt-tracking-tight);
+      color: var(--qt-text-primary);
+    }
+
+    .qt-status {
+      font-size: 12px;
+      color: var(--qt-text-tertiary);
+      letter-spacing: var(--qt-tracking-body);
+      text-transform: uppercase;
+    }
+
+    .qt-main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+
+    .qt-section {
+      background: var(--qt-surface);
+      border: 1px solid var(--qt-border);
+      border-radius: var(--qt-radius);
+      padding: 32px;
+    }
+
+    .qt-section-header {
+      margin-bottom: 32px;
+    }
+
+    .qt-section-title {
+      font-family: var(--qt-font-display);
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: var(--qt-tracking-tight);
+      color: var(--qt-text-primary);
+      margin: 0 0 8px;
+    }
+
+    .qt-section-subtitle {
+      font-size: 14px;
+      color: var(--qt-text-secondary);
+      letter-spacing: var(--qt-tracking-body);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .qt-form {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .qt-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .qt-field-label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: var(--qt-tracking-tight);
+      color: var(--qt-text-primary);
+      text-transform: uppercase;
+    }
+
+    .qt-field-hint {
+      font-size: 11px;
+      color: var(--qt-text-tertiary);
+      letter-spacing: var(--qt-tracking-body);
+      margin-top: 4px;
+    }
+
+    .qt-input,
+    .qt-textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--qt-border);
+      border-radius: var(--qt-radius);
+      background: var(--qt-surface);
+      color: var(--qt-text-primary);
+      font-family: var(--qt-font-body);
+      font-size: 14px;
+      letter-spacing: var(--qt-tracking-body);
+      outline: none;
+      transition: var(--qt-transition);
+    }
+
+    .qt-input:focus,
+    .qt-textarea:focus {
+      border-color: var(--qt-accent-blue);
+      box-shadow: 0 0 0 3px rgba(0, 168, 204, 0.1);
+    }
+
+    .qt-textarea {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .qt-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+
+    .qt-toolbar-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .qt-button {
+      padding: 8px 16px;
+      border: 1px solid var(--qt-border);
+      border-radius: var(--qt-radius);
+      background: var(--qt-surface);
+      color: var(--qt-text-primary);
+      font-family: var(--qt-font-body);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: var(--qt-tracking-tight);
+      text-transform: uppercase;
+      cursor: pointer;
+      outline: none;
+      transition: var(--qt-transition);
+    }
+
+    .qt-button:hover {
+      background: var(--qt-bg);
+      border-color: var(--qt-accent);
+    }
+
+    .qt-button:active {
+      transform: translateY(1px);
+    }
+
+    .qt-button--primary {
+      background: linear-gradient(135deg, var(--qt-accent-blue), var(--qt-accent-teal));
+      color: white;
+      border: 1px solid var(--qt-accent-blue);
+      font-weight: 600;
+    }
+
+    .qt-button--primary:hover {
+      background: linear-gradient(135deg, var(--qt-accent-dark), var(--qt-accent-blue));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 168, 204, 0.3);
+    }
+
+    .qt-button--primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(0, 168, 204, 0.2);
+    }
+
+    .qt-button--secondary {
+      border-color: var(--qt-text-tertiary);
+      color: var(--qt-text-secondary);
+    }
+
+    .qt-button--secondary:hover {
+      border-color: var(--qt-accent-blue);
+      color: var(--qt-accent-blue);
+      background: rgba(0, 168, 204, 0.05);
+    }
+
+    .qt-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 15px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-size: 13px;
+      letter-spacing: var(--qt-tracking-body);
     }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 12px;
+
+    .qt-table th,
+    .qt-table td {
+      padding: 12px 16px;
       text-align: left;
+      border-bottom: 1px solid var(--qt-border);
     }
-    th {
-      background-color: #f2f2f2;
-      font-weight: bold;
+
+    .qt-table th {
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: var(--qt-tracking-tight);
+      text-transform: uppercase;
+      color: var(--qt-text-secondary);
+      border-bottom: 2px solid var(--qt-accent-light);
     }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
+
+    .qt-table td {
+      color: var(--qt-text-primary);
+      vertical-align: top;
     }
-    tr:hover {
-      background-color: #f1f1f1;
+
+    .qt-table tr:hover {
+      background: var(--qt-bg);
     }
-    .actions button {
-      margin-right: 5px;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .actions button:first-child {
-      background-color: #4CAF50;
-      color: white;
-    }
-    .actions button:last-child {
-      background-color: #f44336;
-      color: white;
-    }
-    .add-snippet-form {
-      margin-bottom: 20px;
+
+    .qt-actions {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background-color: white;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      gap: 8px;
+      justify-content: flex-end;
     }
-    .form-group {
+
+    .qt-actions .qt-button {
+      padding: 4px 8px;
+      font-size: 10px;
+    }
+
+    .qt-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--qt-border);
       display: flex;
-      flex-direction: column;
-      gap: 5px;
+      align-items: center;
+      justify-content: space-between;
     }
-    .form-group label {
-      font-weight: bold;
+
+    .qt-footer-text {
+      font-size: 12px;
+      color: var(--qt-text-tertiary);
+      letter-spacing: var(--qt-tracking-body);
     }
-    .form-group input, .form-group textarea {
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 3px;
-    }
-    .form-group textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-    .button-group {
+
+    .qt-import-export {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--qt-border);
     }
-    .button-group button {
-      padding: 8px 15px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-weight: bold;
+
+    .qt-import-text {
+      font-size: 12px;
+      color: var(--qt-text-secondary);
+      letter-spacing: var(--qt-tracking-body);
+      max-width: 60%;
     }
-    .button-group button[type="submit"] {
-      background-color: #4CAF50;
-      color: white;
-    }
-    .import-export {
+
+    .qt-import-actions {
       display: flex;
-      gap: 10px;
-      margin-top: 20px;
+      gap: 12px;
     }
-    .import-export button {
-      padding: 8px 15px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      background-color: #2196F3;
-      color: white;
-      font-weight: bold;
-    }
-    .firefox-note {
-      margin-top: 20px;
-      padding: 10px;
-      background-color: #FFF3CD;
-      border-left: 4px solid #FFC107;
-      color: #856404;
+
+    @media (max-width: 768px) {
+      body {
+        padding: 24px;
+      }
+
+      .qt-main {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+
+      .qt-section {
+        padding: 24px;
+      }
+
+      .qt-import-export {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .qt-import-text {
+        max-width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>QuickText Options</h1>
-  
-  <div class="firefox-note">
-    <strong>Firefox Version:</strong> This is the Firefox-compatible version of QuickText.
+  <div class="qt-container">
+    <header class="qt-header">
+      <div class="qt-logo">
+        <img src="images/icon48.png" alt="QuickText" class="qt-logo-image">
+        <div class="qt-logo-text">QuickText</div>
+      </div>
+      <div class="qt-status">Active</div>
+    </header>
+
+    <main class="qt-main">
+      <section class="qt-section">
+        <div class="qt-section-header">
+          <h1 class="qt-section-title">Create snippet</h1>
+          <p class="qt-section-subtitle">Pair a fast trigger with text to insert frequently used phrases without breaking your flow.</p>
+        </div>
+
+        <form class="qt-form" id="add-snippet-form">
+          <div class="qt-field">
+            <label class="qt-field-label" for="snippet-trigger">Trigger</label>
+            <input
+              type="text"
+              id="snippet-trigger"
+              class="qt-input"
+              placeholder="Text trigger like /intro or hotkey like Ctrl+Shift+K"
+            >
+            <div class="qt-field-hint">
+              Text triggers must start with /. Hotkeys use combinations like Ctrl+Shift+K.
+            </div>
+          </div>
+
+          <div class="qt-field">
+            <label class="qt-field-label" for="snippet-value">Expansion</label>
+            <textarea
+              id="snippet-value"
+              class="qt-textarea"
+              placeholder="Write the text that should appear when this trigger fires."
+              rows="4"
+            ></textarea>
+            <div class="qt-field-hint">
+              Supports plain text. Rich text formatting coming soon.
+            </div>
+          </div>
+
+          <div class="qt-footer">
+            <div class="qt-footer-text">
+              Edit or delete snippets from the table on the right.
+            </div>
+            <button type="submit" class="qt-button qt-button--primary">
+              Save snippet
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="qt-section">
+        <div class="qt-section-header">
+          <h1 class="qt-section-title">Manage snippets</h1>
+          <p class="qt-section-subtitle">Edit, update, and keep your most-used replies organized.</p>
+        </div>
+
+        <table class="qt-table" id="snippets-table">
+          <thead>
+            <tr>
+              <th>Trigger</th>
+              <th>Expansion</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Snippets will be loaded here by options.js -->
+          </tbody>
+        </table>
+
+        <div class="qt-import-export">
+          <div class="qt-import-text">
+            Export your snippets for backup or share them across browsers.
+          </div>
+          <div class="qt-import-actions">
+            <button id="export-snippets-button" class="qt-button qt-button--secondary" type="button">
+              Export JSON
+            </button>
+            <input type="file" id="import-snippets-input" accept=".json" style="display: none;">
+            <button id="import-snippets-button" class="qt-button qt-button--secondary" type="button">
+              Import JSON
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
-  
-  <h2>Add New Snippet</h2>
-  <form id="add-snippet-form" class="add-snippet-form">
-    <div class="form-group">
-      <label for="trigger-input">Trigger:</label>
-      <input type="text" id="trigger-input" placeholder="e.g., /addr or Ctrl+Alt+A" required>
-      <small>For text triggers, use a prefix like "/". For hotkeys, use format like "Ctrl+Shift+A".</small>
-    </div>
-    
-    <div class="form-group">
-      <label for="value-input">Expansion:</label>
-      <textarea id="value-input" placeholder="Text to insert when trigger is activated" required></textarea>
-      <small>You can use plain text or HTML for rich formatting.</small>
-    </div>
-    
-    <div class="button-group">
-      <button type="submit">Save Snippet</button>
-    </div>
-  </form>
-  
-  <h2>Your Snippets</h2>
-  <table id="snippet-table">
-    <thead>
-      <tr>
-        <th>Trigger</th>
-        <th>Expansion</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="snippet-body">
-      <!-- Snippets will be loaded here dynamically -->
-    </tbody>
-  </table>
-  
-  <div class="import-export">
-    <button id="export-button">Export Snippets</button>
-    <button id="import-button">Import Snippets</button>
-  </div>
-  
+
   <script src="options.js"></script>
 </body>
 </html>

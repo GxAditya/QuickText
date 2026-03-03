@@ -1,86 +1,77 @@
 document.addEventListener('DOMContentLoaded', () => {
   const snippetTriggerInput = document.getElementById('snippet-trigger');
   const snippetValueInput = document.getElementById('snippet-value');
-  const addSnippetButton = document.getElementById('add-snippet-button');
+  const addSnippetForm = document.getElementById('add-snippet-form');
   const snippetsTableBody = document.querySelector('#snippets-table tbody');
   const exportSnippetsButton = document.getElementById('export-snippets-button');
   const importSnippetsInput = document.getElementById('import-snippets-input');
   const importSnippetsButton = document.getElementById('import-snippets-button');
   
-  // Add rich text toggle button
-  const richTextToggle = document.createElement('button');
-  richTextToggle.id = 'rich-text-toggle';
-  richTextToggle.textContent = 'Toggle Rich Text';
-  richTextToggle.style.marginBottom = '10px';
-  snippetValueInput.parentNode.insertBefore(richTextToggle, snippetValueInput.nextSibling);
+  // Add subtle micro-interactions
+  addMicroInteractions();
   
-  // Rich text toolbar
-  const richTextToolbar = document.createElement('div');
-  richTextToolbar.id = 'rich-text-toolbar';
-  richTextToolbar.style.display = 'none';
-  richTextToolbar.style.marginBottom = '10px';
-  richTextToolbar.innerHTML = `
-    <button data-command="bold" title="Bold"><b>B</b></button>
-    <button data-command="italic" title="Italic"><i>I</i></button>
-    <button data-command="underline" title="Underline"><u>U</u></button>
-    <button data-command="createLink" title="Insert Link">🔗</button>
-    <button data-command="insertHTML" data-value="<hr>" title="Insert Horizontal Line">―</button>
-    <button data-command="removeFormat" title="Remove Formatting">Clear</button>
-  `;
-  snippetValueInput.parentNode.insertBefore(richTextToolbar, snippetValueInput);
-  
-  // Variable to track if we're in rich text mode
-  let isRichTextMode = false;
-
-  // Function to toggle rich text editing mode
-  function setRichTextMode(enable) {
-    isRichTextMode = enable;
-    if (enable) {
-      // Convert textarea to contenteditable div
-      snippetValueInput.setAttribute('contenteditable', 'true');
-      snippetValueInput.style.minHeight = '100px';
-      richTextToolbar.style.display = 'block';
-      richTextToggle.textContent = 'Switch to Plain Text';
-    } else {
-      // Convert back to plain textarea
-      snippetValueInput.removeAttribute('contenteditable');
-      richTextToolbar.style.display = 'none';
-      richTextToggle.textContent = 'Switch to Rich Text';
-    }
+  // Function to add micro-interactions
+  function addMicroInteractions() {
+    // Add ripple effect to buttons
+    document.querySelectorAll('.qt-button').forEach(button => {
+      button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+          position: absolute;
+          width: ${size}px;
+          height: ${size}px;
+          left: ${x}px;
+          top: ${y}px;
+          background: rgba(0, 0, 0, 0.1);
+          border-radius: 50%;
+          transform: scale(0);
+          animation: ripple 0.6s ease-out;
+          pointer-events: none;
+        `;
+        
+        this.style.position = 'relative';
+        this.style.overflow = 'hidden';
+        this.appendChild(ripple);
+        
+        setTimeout(() => ripple.remove(), 600);
+      });
+    });
+    
+    // Add focus animations to inputs
+    document.querySelectorAll('.qt-input, .qt-textarea').forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'translateY(-2px)';
+      });
+      
+      input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'translateY(0)';
+      });
+    });
   }
   
-  // Toggle rich text mode
-  richTextToggle.addEventListener('click', () => {
-    if (isRichTextMode) {
-      // Convert from rich text to plain text
-      const plainText = snippetValueInput.innerText;
-      snippetValueInput.value = plainText;
-      setRichTextMode(false);
-    } else {
-      // Convert from plain text to rich text
-      const richText = snippetValueInput.value;
-      snippetValueInput.innerHTML = richText;
-      setRichTextMode(true);
+  // Add CSS for ripple animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
     }
+  `;
+  document.head.appendChild(style);
+  
+  // Form submission handler
+  addSnippetForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    addSnippet();
   });
   
-  // Handle rich text toolbar buttons
-  richTextToolbar.querySelectorAll('button').forEach(button => {
-    button.addEventListener('click', () => {
-      const command = button.dataset.command;
-      const value = button.dataset.value || null;
-      
-      if (command === 'createLink') {
-        const url = prompt('Enter the URL:', 'http://');
-        if (url) document.execCommand(command, false, url);
-      } else {
-        document.execCommand(command, false, value);
-      }
-      
-      snippetValueInput.focus();
-    });
-  });
-
   // Load snippets from storage and display them
   function loadSnippets() {
     chrome.storage.local.get({ snippets: [] }, (result) => {
@@ -93,22 +84,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const actionsCell = row.insertCell();
 
         triggerCell.textContent = snippet.trigger;
-        
-        // Display rich text content properly
-        if (snippet.isRichText) {
-          valueCell.innerHTML = snippet.value;
-        } else {
-          valueCell.textContent = snippet.value;
-        }
+        valueCell.textContent = snippet.value.length > 50 
+          ? snippet.value.substring(0, 50) + '...' 
+          : snippet.value;
 
+        // Create action buttons
         const editButton = document.createElement('button');
         editButton.textContent = 'Edit';
+        editButton.className = 'qt-button qt-button--secondary';
         editButton.addEventListener('click', () => editSnippet(index));
 
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Delete';
+        deleteButton.className = 'qt-button qt-button--secondary';
         deleteButton.addEventListener('click', () => deleteSnippet(index));
 
+        actionsCell.className = 'qt-actions';
         actionsCell.appendChild(editButton);
         actionsCell.appendChild(deleteButton);
       });
@@ -116,59 +107,44 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Add a new snippet
-  addSnippetButton.addEventListener('click', () => {
+  function addSnippet() {
     const trigger = snippetTriggerInput.value.trim();
-    let value;
-    
-    // Get value based on current mode
-    if (isRichTextMode) {
-      value = snippetValueInput.innerHTML.trim();
-    } else {
-      value = snippetValueInput.value.trim();
-    }
+    const value = snippetValueInput.value.trim();
 
     if (trigger && value) {
       chrome.storage.local.get({ snippets: [] }, (result) => {
         const snippets = result.snippets;
-        // Basic check for hotkey format (e.g., Ctrl+Shift+K)
-        // More robust validation can be added
+        
+        // Validate trigger format
         if (trigger.includes('+') && (trigger.toLowerCase().includes('ctrl') || trigger.toLowerCase().includes('alt') || trigger.toLowerCase().includes('shift') || trigger.toLowerCase().includes('meta'))) {
-            // It's a hotkey
-            // Validate that it's a supported format
-            if (!validateHotkeyFormat(trigger)) {
-              alert('Please use a valid hotkey format like Ctrl+Shift+K or Alt+X');
-              return;
-            }
-        } else if (!trigger.startsWith('/')) {
-            alert('Text triggers must start with "/". Hotkeys should use combinations like Ctrl+Shift+K.');
+          // It's a hotkey
+          if (!validateHotkeyFormat(trigger)) {
+            alert('Please use a valid hotkey format like Ctrl+Shift+K or Alt+X');
             return;
+          }
+        } else if (!trigger.startsWith('/')) {
+          alert('Text triggers must start with "/". Hotkeys should use combinations like Ctrl+Shift+K.');
+          return;
         }
 
-        snippets.push({ 
-          trigger, 
-          value, 
-          isRichText: isRichTextMode 
-        });
-        
+        snippets.push({ trigger, value, isRichText: false });
         chrome.storage.local.set({ snippets }, () => {
+          // Clear form
           snippetTriggerInput.value = '';
-          if (isRichTextMode) {
-            snippetValueInput.innerHTML = '';
-          } else {
-            snippetValueInput.value = '';
-          }
+          snippetValueInput.value = '';
+          
+          // Reload snippets table
           loadSnippets();
-          // Notify background script about changes if hotkeys are involved
-          if (snippets.some(s => s.trigger.includes('+'))) {
-            chrome.runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets: snippets });
-          }
+          
+          // Update background script with new snippets
+          chrome.runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets });
         });
       });
     } else {
-      alert('Both trigger and expansion value are required.');
+      alert('Please enter both a trigger and expansion text.');
     }
-  });
-  
+  }
+
   // Validate hotkey format
   function validateHotkeyFormat(hotkey) {
     // Basic validation for hotkey format
@@ -183,103 +159,76 @@ document.addEventListener('DOMContentLoaded', () => {
     return hasModifier;
   }
 
-
-  // Edit a snippet (basic implementation: fill form, user re-adds)
+  // Edit a snippet
   function editSnippet(index) {
     chrome.storage.local.get({ snippets: [] }, (result) => {
       const snippets = result.snippets;
       const snippet = snippets[index];
       snippetTriggerInput.value = snippet.trigger;
+      snippetValueInput.value = snippet.value;
       
-      // Handle rich text content when editing
-      if (snippet.isRichText) {
-        setRichTextMode(true);
-        snippetValueInput.innerHTML = snippet.value;
-      } else {
-        setRichTextMode(false);
-        snippetValueInput.value = snippet.value;
-      }
+      // Remove the old snippet
+      snippets.splice(index, 1);
+      chrome.storage.local.set({ snippets });
       
-      // For a better UX, you might want to change the 'Add' button to 'Update'
-      // and handle the update logic differently, or use a modal for editing.
-      // For simplicity, we'll remove the old one and the user can re-add.
-      deleteSnippet(index, false); // Delete without reloading yet
-      alert('Snippet loaded into form for editing. Make changes and click "Add Snippet" to save.');
+      // Focus on trigger input for editing
+      snippetTriggerInput.focus();
     });
   }
 
   // Delete a snippet
-  function deleteSnippet(index, reload = true) {
-    chrome.storage.local.get({ snippets: [] }, (result) => {
-      const snippets = result.snippets;
-      const deletedSnippet = snippets.splice(index, 1)[0];
-      chrome.storage.local.set({ snippets }, () => {
-        if (reload) loadSnippets();
-        // Notify background script about changes if hotkeys are involved
-        if (deletedSnippet && deletedSnippet.trigger.includes('+') || snippets.some(s => s.trigger.includes('+'))) {
-            chrome.runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets: snippets });
-        }
+  function deleteSnippet(index) {
+    if (confirm('Are you sure you want to delete this snippet?')) {
+      chrome.storage.local.get({ snippets: [] }, (result) => {
+        const snippets = result.snippets;
+        snippets.splice(index, 1);
+        chrome.storage.local.set({ snippets }, () => {
+          loadSnippets();
+          chrome.runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets });
+        });
       });
-    });
+    }
   }
 
   // Export snippets
   exportSnippetsButton.addEventListener('click', () => {
     chrome.storage.local.get({ snippets: [] }, (result) => {
-      const snippets = result.snippets;
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snippets, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "quicktext_snippets.json");
-      document.body.appendChild(downloadAnchorNode); // required for firefox
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
+      const dataStr = JSON.stringify(result.snippets, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = 'quicktext-snippets.json';
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
     });
   });
 
-  // Trigger file input for import
+  // Import snippets
   importSnippetsButton.addEventListener('click', () => {
     importSnippetsInput.click();
   });
 
-  // Import snippets
-  importSnippetsInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
+  importSnippetsInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = (event) => {
         try {
-          const importedSnippets = JSON.parse(e.target.result);
-          if (Array.isArray(importedSnippets) && importedSnippets.every(s => s.hasOwnProperty('trigger') && s.hasOwnProperty('value'))) {
-            // Basic validation, can be improved
-            chrome.storage.local.get({ snippets: [] }, (result) => {
-                let currentSnippets = result.snippets;
-                // Simple merge: add new, overwrite existing with same trigger (could be smarter)
-                importedSnippets.forEach(imported => {
-                    const existingIndex = currentSnippets.findIndex(s => s.trigger === imported.trigger);
-                    if (existingIndex > -1) {
-                        currentSnippets[existingIndex] = imported;
-                    } else {
-                        currentSnippets.push(imported);
-                    }
-                });
-                chrome.storage.local.set({ snippets: currentSnippets }, () => {
-                    loadSnippets();
-                    alert('Snippets imported successfully!');
-                    // Notify background script about changes if hotkeys are involved
-                    if (currentSnippets.some(s => s.trigger.includes('+'))) {
-                        chrome.runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets: currentSnippets });
-                    }
-                });
+          const importedSnippets = JSON.parse(event.target.result);
+          chrome.storage.local.get({ snippets: [] }, (result) => {
+            const existingSnippets = result.snippets;
+            const mergedSnippets = [...existingSnippets, ...importedSnippets];
+            chrome.storage.local.set({ snippets: mergedSnippets }, () => {
+              loadSnippets();
+              chrome.runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets: mergedSnippets });
+              alert('Snippets imported successfully!');
             });
-          } else {
-            alert('Invalid file format. Please import a valid JSON export from QuickText.');
-          }
+          });
         } catch (error) {
-          alert('Error reading or parsing file: ' + error.message);
+          alert('Error importing snippets. Please ensure the file is a valid JSON file.');
         }
-        // Reset file input to allow importing the same file again if needed
-        importSnippetsInput.value = '';
       };
       reader.readAsText(file);
     }

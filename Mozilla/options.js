@@ -1,245 +1,243 @@
-// options.js for Firefox
-document.addEventListener('DOMContentLoaded', function() {
-  // Load existing snippets
-  loadSnippets();
+document.addEventListener('DOMContentLoaded', () => {
+  const snippetTriggerInput = document.getElementById('snippet-trigger');
+  const snippetValueInput = document.getElementById('snippet-value');
+  const addSnippetForm = document.getElementById('add-snippet-form');
+  const snippetsTableBody = document.querySelector('#snippets-table tbody');
+  const exportSnippetsButton = document.getElementById('export-snippets-button');
+  const importSnippetsInput = document.getElementById('import-snippets-input');
+  const importSnippetsButton = document.getElementById('import-snippets-button');
   
-  // Set up event listeners
-  document.getElementById('add-snippet-form').addEventListener('submit', addSnippet);
-  document.getElementById('import-button').addEventListener('click', importSnippets);
-  document.getElementById('export-button').addEventListener('click', exportSnippets);
-});
-
-// Function to sanitize HTML content to prevent XSS attacks
-function sanitizeHTML(html) {
-  const doc = new DOMParser().parseFromString('<div></div>', 'text/html');
-  const container = doc.body.firstChild;
+  // Use browser API for Firefox
+  const storage = browser.storage;
+  const runtime = browser.runtime;
   
-  // Set the potentially unsafe HTML
-  container.innerHTML = html;
+  // Add subtle micro-interactions
+  addMicroInteractions();
   
-  // Remove potentially dangerous elements and attributes
-  const scripts = container.querySelectorAll('script, iframe, object, embed, form');
-  scripts.forEach(node => node.remove());
-  
-  // Remove dangerous attributes (event handlers, javascript: URLs)
-  const allElements = container.querySelectorAll('*');
-  allElements.forEach(el => {
-    Array.from(el.attributes).forEach(attr => {
-      // Remove on* event handlers and javascript: URLs
-      if (attr.name.startsWith('on') || 
-          (attr.value && attr.value.toLowerCase().includes('javascript:')) ||
-          (attr.name === 'href' && attr.value.toLowerCase().includes('javascript:'))) {
-        el.removeAttribute(attr.name);
-      }
-    });
-  });
-  
-  return container.innerHTML;
-}
-
-// Load snippets from storage and display them
-function loadSnippets() {
-  browser.storage.local.get({ snippets: [] }).then(result => {
-    const snippets = result.snippets;
-    const snippetTable = document.getElementById('snippet-table');
-    const snippetBody = document.getElementById('snippet-body');
-    
-    // Clear existing rows
-    snippetBody.innerHTML = ''; // Safe usage - empty string
-    
-    // Add each snippet to the table
-    snippets.forEach((snippet, index) => {
-      const row = document.createElement('tr');
-      
-      // Trigger column
-      const triggerCell = document.createElement('td');
-      triggerCell.textContent = snippet.trigger;
-      row.appendChild(triggerCell);
-      
-      // Value column (preview)
-      const valueCell = document.createElement('td');
-      valueCell.textContent = snippet.value.length > 50 ? 
-        snippet.value.substring(0, 50) + '...' : snippet.value;
-      row.appendChild(valueCell);
-      
-      // Actions column
-      const actionsCell = document.createElement('td');
-      actionsCell.className = 'actions';
-      
-      // Edit button
-      const editButton = document.createElement('button');
-      editButton.textContent = 'Edit';
-      editButton.addEventListener('click', () => editSnippet(index));
-      actionsCell.appendChild(editButton);
-      
-      // Delete button
-      const deleteButton = document.createElement('button');
-      deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', () => deleteSnippet(index));
-      actionsCell.appendChild(deleteButton);
-      
-      row.appendChild(actionsCell);
-      snippetBody.appendChild(row);
+  // Function to add micro-interactions
+  function addMicroInteractions() {
+    // Add ripple effect to buttons
+    document.querySelectorAll('.qt-button').forEach(button => {
+      button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+          position: absolute;
+          width: ${size}px;
+          height: ${size}px;
+          left: ${x}px;
+          top: ${y}px;
+          background: rgba(0, 0, 0, 0.1);
+          border-radius: 50%;
+          transform: scale(0);
+          animation: ripple 0.6s ease-out;
+          pointer-events: none;
+        `;
+        
+        this.style.position = 'relative';
+        this.style.overflow = 'hidden';
+        this.appendChild(ripple);
+        
+        setTimeout(() => ripple.remove(), 600);
+      });
     });
     
-    // Update hotkeys in background script
-    browser.runtime.sendMessage({
-      type: 'UPDATE_HOTKEYS',
-      snippets: snippets
-    }).then(response => {
-      console.log('Hotkeys updated:', response);
-    }).catch(error => {
-      console.error('Error updating hotkeys:', error);
+    // Add focus animations to inputs
+    document.querySelectorAll('.qt-input, .qt-textarea').forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'translateY(-2px)';
+      });
+      
+      input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'translateY(0)';
+      });
     });
-  });
-}
-
-// Add a new snippet
-function addSnippet(event) {
-  event.preventDefault();
-  
-  const triggerInput = document.getElementById('trigger-input');
-  const valueInput = document.getElementById('value-input');
-  
-  const trigger = triggerInput.value.trim();
-  const value = valueInput.value.trim();
-  
-  if (!trigger || !value) {
-    alert('Both trigger and value are required!');
-    return;
   }
   
-  // Get existing snippets, add the new one, and save
-  browser.storage.local.get({ snippets: [] }).then(result => {
-    const snippets = result.snippets;
-    
-    // Check for duplicate triggers
-    const duplicateIndex = snippets.findIndex(s => s.trigger === trigger);
-    if (duplicateIndex !== -1) {
-      if (confirm(`A snippet with trigger "${trigger}" already exists. Do you want to replace it?`)) {
-        snippets[duplicateIndex].value = value;
-      } else {
-        return;
+  // Add CSS for ripple animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
       }
-    } else {
-      snippets.push({ trigger, value });
     }
-    
-    // Save updated snippets
-    browser.storage.local.set({ snippets }).then(() => {
-      // Clear form and reload snippets
-      triggerInput.value = '';
-      valueInput.value = '';
-      loadSnippets();
-    });
+  `;
+  document.head.appendChild(style);
+  
+  // Form submission handler
+  addSnippetForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    addSnippet();
   });
-}
-
-// Edit an existing snippet
-function editSnippet(index) {
-  browser.storage.local.get({ snippets: [] }).then(result => {
-    const snippets = result.snippets;
-    const snippet = snippets[index];
-    
-    if (snippet) {
-      // Populate form with snippet data
-      document.getElementById('trigger-input').value = snippet.trigger;
-      document.getElementById('value-input').value = snippet.value;
-      
-      // Remove the snippet from the list (will be re-added on save)
-      snippets.splice(index, 1);
-      browser.storage.local.set({ snippets }).then(() => {
-        loadSnippets();
-      });
-    }
-  });
-}
-
-// Delete a snippet
-function deleteSnippet(index) {
-  if (confirm('Are you sure you want to delete this snippet?')) {
-    browser.storage.local.get({ snippets: [] }).then(result => {
+  
+  // Load snippets from storage and display them
+  function loadSnippets() {
+    storage.local.get({ snippets: [] }).then(result => {
       const snippets = result.snippets;
-      
-      // Remove the snippet at the specified index
-      snippets.splice(index, 1);
-      
-      // Save updated snippets
-      browser.storage.local.set({ snippets }).then(() => {
-        loadSnippets();
+      snippetsTableBody.innerHTML = ''; // Clear existing rows
+      snippets.forEach((snippet, index) => {
+        const row = snippetsTableBody.insertRow();
+        const triggerCell = row.insertCell();
+        const valueCell = row.insertCell();
+        const actionsCell = row.insertCell();
+
+        triggerCell.textContent = snippet.trigger;
+        valueCell.textContent = snippet.value.length > 50 
+          ? snippet.value.substring(0, 50) + '...' 
+          : snippet.value;
+
+        // Create action buttons
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Edit';
+        editButton.className = 'qt-button qt-button--secondary';
+        editButton.addEventListener('click', () => editSnippet(index));
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.className = 'qt-button qt-button--secondary';
+        deleteButton.addEventListener('click', () => deleteSnippet(index));
+
+        actionsCell.className = 'qt-actions';
+        actionsCell.appendChild(editButton);
+        actionsCell.appendChild(deleteButton);
       });
     });
   }
-}
 
-// Export snippets as JSON
-function exportSnippets() {
-  browser.storage.local.get({ snippets: [] }).then(result => {
-    const snippets = result.snippets;
-    const dataStr = JSON.stringify(snippets, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = 'quicktext-snippets.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  });
-}
+  // Add a new snippet
+  function addSnippet() {
+    const trigger = snippetTriggerInput.value.trim();
+    const value = snippetValueInput.value.trim();
 
-// Import snippets from JSON
-function importSnippets() {
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = '.json';
-  
-  fileInput.addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const snippets = JSON.parse(e.target.result);
+    if (trigger && value) {
+      storage.local.get({ snippets: [] }).then(result => {
+        const snippets = result.snippets;
         
-        if (!Array.isArray(snippets)) {
-          throw new Error('Invalid format: Expected an array of snippets');
-        }
-        
-        // Validate each snippet
-        snippets.forEach(snippet => {
-          if (!snippet.trigger || !snippet.value) {
-            throw new Error('Invalid snippet format: Each snippet must have a trigger and value');
+        // Validate trigger format
+        if (trigger.includes('+') && (trigger.toLowerCase().includes('ctrl') || trigger.toLowerCase().includes('alt') || trigger.toLowerCase().includes('shift') || trigger.toLowerCase().includes('meta'))) {
+          // It's a hotkey
+          if (!validateHotkeyFormat(trigger)) {
+            alert('Please use a valid hotkey format like Ctrl+Shift+K or Alt+X');
+            return;
           }
+        } else if (!trigger.startsWith('/')) {
+          alert('Text triggers must start with "/". Hotkeys should use combinations like Ctrl+Shift+K.');
+          return;
+        }
+
+        snippets.push({ trigger, value, isRichText: false });
+        storage.local.set({ snippets }).then(() => {
+          // Clear form
+          snippetTriggerInput.value = '';
+          snippetValueInput.value = '';
+          
+          // Reload snippets table
+          loadSnippets();
+          
+          // Update background script with new snippets
+          runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets });
         });
-        
-        // Confirm import
-        if (confirm(`Import ${snippets.length} snippets? This will replace any duplicates.`)) {
-          // Merge with existing snippets, replacing duplicates
-          browser.storage.local.get({ snippets: [] }).then(result => {
-            let existingSnippets = result.snippets;
-            
-            // Remove any existing snippets with the same triggers
-            const existingTriggers = new Set(snippets.map(s => s.trigger));
-            existingSnippets = existingSnippets.filter(s => !existingTriggers.has(s.trigger));
-            
-            // Combine existing and imported snippets
-            const combinedSnippets = [...existingSnippets, ...snippets];
-            
-            // Save combined snippets
-            browser.storage.local.set({ snippets: combinedSnippets }).then(() => {
+      });
+    } else {
+      alert('Please enter both a trigger and expansion text.');
+    }
+  }
+
+  // Validate hotkey format
+  function validateHotkeyFormat(hotkey) {
+    // Basic validation for hotkey format
+    const parts = hotkey.split('+');
+    if (parts.length < 2) return false;
+    
+    // Check for at least one modifier key
+    const modifiers = ['ctrl', 'alt', 'shift', 'meta'];
+    const hasModifier = parts.some(part => 
+      modifiers.includes(part.toLowerCase()));
+    
+    return hasModifier;
+  }
+
+  // Edit a snippet
+  function editSnippet(index) {
+    storage.local.get({ snippets: [] }).then(result => {
+      const snippets = result.snippets;
+      const snippet = snippets[index];
+      snippetTriggerInput.value = snippet.trigger;
+      snippetValueInput.value = snippet.value;
+      
+      // Remove the old snippet
+      snippets.splice(index, 1);
+      storage.local.set({ snippets });
+      
+      // Focus on trigger input for editing
+      snippetTriggerInput.focus();
+    });
+  }
+
+  // Delete a snippet
+  function deleteSnippet(index) {
+    if (confirm('Are you sure you want to delete this snippet?')) {
+      storage.local.get({ snippets: [] }).then(result => {
+        const snippets = result.snippets;
+        snippets.splice(index, 1);
+        storage.local.set({ snippets }).then(() => {
+          loadSnippets();
+          runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets });
+        });
+      });
+    }
+  }
+
+  // Export snippets
+  exportSnippetsButton.addEventListener('click', () => {
+    storage.local.get({ snippets: [] }).then(result => {
+      const dataStr = JSON.stringify(result.snippets, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = 'quicktext-snippets.json';
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+    });
+  });
+
+  // Import snippets
+  importSnippetsButton.addEventListener('click', () => {
+    importSnippetsInput.click();
+  });
+
+  importSnippetsInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importedSnippets = JSON.parse(event.target.result);
+          storage.local.get({ snippets: [] }).then(result => {
+            const existingSnippets = result.snippets;
+            const mergedSnippets = [...existingSnippets, ...importedSnippets];
+            storage.local.set({ snippets: mergedSnippets }).then(() => {
               loadSnippets();
+              runtime.sendMessage({ type: 'UPDATE_HOTKEYS', snippets: mergedSnippets });
               alert('Snippets imported successfully!');
             });
           });
+        } catch (error) {
+          alert('Error importing snippets. Please ensure the file is a valid JSON file.');
         }
-      } catch (error) {
-        alert('Error importing snippets: ' + error.message);
-      }
-    };
-    reader.readAsText(file);
+      };
+      reader.readAsText(file);
+    }
   });
-  
-  fileInput.click();
-}
+
+  // Initial load
+  loadSnippets();
+});
